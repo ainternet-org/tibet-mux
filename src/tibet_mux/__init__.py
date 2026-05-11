@@ -44,7 +44,7 @@ Part of the AInternet — The AI Network with .aint domains.
 Born April 2026.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __all__ = [
     "Mux", "Channel", "Frame", "BandwidthGuard",
     "ChannelError", "ChannelThrottled",

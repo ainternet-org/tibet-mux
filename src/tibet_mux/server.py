@@ -161,6 +161,51 @@ def create_router(mux: Mux | None = None, prefix: str = "/api/mux"):
             raise HTTPException(404, "Channel not found")
         return {**ch.to_dict(), "recent_frames": ch.recent_frames}
 
+    @router.get(f"{prefix}/by-target")
+    async def mux_by_target(
+        target: str = Query(...),
+        intent: str | None = None,
+        include_closed: bool = False,
+    ):
+        """v1.0.1+ list channels by TARGET (not sender).
+
+        Required for consumer-side polling: a receiver listens
+        for channels addressed *to* it. The default `/channels`
+        endpoint indexes by sender (= _agent_channels[src]),
+        so receivers were invisible to themselves.
+
+        Default include_closed=False (= only state=='open').
+        Set true to also return recently-closed channels (= still
+        held in core._channels with their recent_frames).
+        """
+        tgt = target.replace(".aint", "").lower()
+        matches = []
+        for ch in mux._channels.values():
+            if ch.target != tgt:
+                continue
+            if intent and ch.intent != intent:
+                continue
+            if not include_closed and ch.state != "open":
+                continue
+            matches.append({
+                "id": ch.id,
+                "agent": ch.agent,
+                "target": ch.target,
+                "intent": ch.intent,
+                "state": ch.state,
+                "opened_at": ch.opened_at,
+                "last_activity": ch.last_activity,
+                "frames_sent": ch.frames_sent,
+                "bytes_transferred": ch.bytes_transferred,
+            })
+        return {
+            "target": tgt,
+            "intent_filter": intent,
+            "include_closed": include_closed,
+            "channels": matches,
+            "count": len(matches),
+        }
+
     @router.get(f"{prefix}/intents")
     async def mux_intents():
         return {
