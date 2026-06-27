@@ -90,3 +90,25 @@ def test_lane_skip_rule_needs_full_posture():
     assert cp.lane_skip_allowed(f, has_receipt=True, relation_active=False) is False
     weak = rp.PostureFields(2, 3, 3, 5, 8)  # C<4
     assert cp.lane_skip_allowed(weak, has_receipt=True) is False
+
+
+def test_posture_card_holds_unproven_hot_path():
+    # Codex's Richard card #34048 = R3 C4 T0 A4 M8 -> P3, hot_path HELD (T reactive).
+    card = cp.posture_card("raint-richard", "#34048")
+    assert card["band"] == "P3"
+    assert card["hot_path_active"] is False           # cadence not locked at T0
+    assert any("hot_path" in h for h in card["held"])
+    out = cp.render_card(card)
+    assert "hot_path     : HELD" in out
+
+
+def test_posture_card_does_not_claim_t3_a5_unless_proven():
+    # A spin+sign-ahead route posture, but the session has NOT proven it.
+    card = cp.posture_card("gpu0.p520.waint", "#54359")  # T3 A5 ... by digits
+    assert any("session-proven" in h for h in card["held"])
+    assert card["hot_path_active"] is False
+    # once the session proves cadence, the hold lifts
+    card2 = cp.posture_card("gpu0.p520.waint", "#54359",
+                            session_proven=frozenset({"cadence", "sign_ahead"}))
+    assert card2["hot_path_active"] is True
+    assert not any("session-proven" in h for h in card2["held"])

@@ -160,6 +160,61 @@ class CarrierDecision:
         }
 
 
+POSTURE_CARD_KIND = "org.ainternet.mux.posture_card.v1"
+
+
+def posture_card(actor: str, route_posture: str, *,
+                 session_proven: frozenset = frozenset()) -> Dict[str, object]:
+    """A human/audit posture card for an actor on a route (Richard demo display).
+
+    HONEST by construction (codex's rule: do not claim T3/A5 unless the session
+    lane proves it). Capabilities the digits *imply* but that the session has not
+    demonstrated are listed in `held`, not asserted. `session_proven` is the set
+    of axes actually measured this session, e.g. {"cadence", "sign_ahead"}.
+    Display/audit only — grants no authority.
+    """
+    f = rp.decode_posture(route_posture)
+    perm = lane_permissions(f)
+    band = posture_band(f)
+    held: List[str] = []
+    if perm["hot_path"] and not perm["cadence_locked"]:
+        held.append("hot_path: cadence not locked (timing lane below CBR-spin)")
+    if f.timing_lane >= 3 and "cadence" not in session_proven:
+        held.append("T>=3 (cadence) is claimed by posture but NOT session-proven")
+    if f.audit_mode >= 5 and "sign_ahead" not in session_proven:
+        held.append("A5 sign-ahead is claimed by posture but NOT session-proven")
+    hot_path_active = (perm["hot_path"] and perm["cadence_locked"]
+                       and not any("session-proven" in h for h in held))
+    return {
+        "kind": POSTURE_CARD_KIND,
+        "actor": actor,
+        "route_posture": route_posture,
+        "band": band,
+        "axes": explain(route_posture),
+        "permissions": perm,
+        "hot_path_active": hot_path_active,
+        "held": held,
+        "session_proven": sorted(session_proven),
+    }
+
+
+def render_card(card: Dict[str, object]) -> str:
+    """The CLI/audit print for `redstone posture` / after-richard-start."""
+    a = card["axes"]
+    lines = [
+        f"{card['actor']}  {card['route_posture']}  [{card['band']}]",
+        f"  route family : {a['route_family']}",
+        f"  consent      : {a['consent_class']}",
+        f"  timing lane  : {a['timing_lane']}",
+        f"  audit        : {a['audit_mode']}",
+        f"  mux posture  : {a['mux_posture']}",
+        f"  hot_path     : {'ACTIVE' if card['hot_path_active'] else 'HELD'}",
+    ]
+    for h in card["held"]:
+        lines.append(f"  held         : {h}")
+    return "\n".join(lines)
+
+
 def choose_carrier(route_posture: str, payload_class: str, *,
                    causal_seq: int = 0, has_receipt: bool = False,
                    causal_current: bool = True, relation_active: bool = True,
