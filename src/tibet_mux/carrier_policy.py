@@ -174,7 +174,7 @@ def posture_card(actor: str, route_posture: str, *,
     Display/audit only — grants no authority.
     """
     f = rp.decode_posture(route_posture)
-    perm = lane_permissions(f)
+    perm = rp.lane_permissions(f)
     band = posture_band(f)
     held: List[str] = []
     if perm["hot_path"] and not perm["cadence_locked"]:
@@ -190,7 +190,7 @@ def posture_card(actor: str, route_posture: str, *,
         "actor": actor,
         "route_posture": route_posture,
         "band": band,
-        "axes": explain(route_posture),
+        "axes": rp.explain(route_posture),
         "permissions": perm,
         "hot_path_active": hot_path_active,
         "held": held,
