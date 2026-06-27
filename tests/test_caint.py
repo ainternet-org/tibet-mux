@@ -88,10 +88,13 @@ def test_caint_rejects_expired():
 def test_manifest_handle_deterministic_and_lane_epoch_sensitive():
     now = int(time.time())
     m, _ = _signed_caint(["copy"], ["copy"], ["copy"], now)
-    h1 = caint_manifest_handle(m, lane="L", epoch=1)
-    h2 = caint_manifest_handle(m, lane="L", epoch=1)
-    h3 = caint_manifest_handle(m, lane="L", epoch=2)
-    assert h1 == h2 and h1 != h3 and len(h1) == 32  # 16 bytes hex, epoch rolls the handle
+    rel = {"kind": "org.ainternet.redstone.relation.v1", "from": "a", "to": "b", "signatures": {}}
+    cw = {"issued_at": now, "expires_at": now + 60, "issuer": "p520-gpu-controller.saint"}
+    h1 = caint_manifest_handle(m, rel, cw, epoch=1, lane="L")
+    h2 = caint_manifest_handle(m, rel, cw, epoch=1, lane="L")
+    h3 = caint_manifest_handle(m, rel, cw, epoch=2, lane="L")
+    h0 = caint_manifest_handle(m, rel, cw)  # no epoch/lane = first16(parent_hash)
+    assert h1 == h2 and h1 != h3 and len(h1) == 32 and len(h0) == 32  # epoch rolls the handle
 
 
 def _forward_edge(pred, succ_pub, succ_aint, now, expires_delta=30):

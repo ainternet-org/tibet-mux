@@ -210,17 +210,45 @@ def caint_capability(member_caps: list) -> list:
     return sorted(inter)
 
 
-def caint_manifest_handle(manifest: dict, lane: str = "", epoch: int = 0) -> str:
-    """Cold-path derive of the parent/composite handle (hot path references it).
+def _without_keys(value: dict, keys: set) -> dict:
+    return {k: v for k, v in value.items() if k not in keys}
 
-    parent_relation_hash = sha256(canonical_without(manifest)) folded with lane+epoch ->
-    a 16-byte (32 hex) keyed handle. Uses the SAME canonical_without as verify_caint, so the
-    handle is byte-consistent with what was verified (single source). The hot path presents only
-    this handle ("you are expected"); the runtime caches known handles and re-derives per epoch.
+
+def caint_parent_anchor(manifest: dict, relation: dict, consent_window: dict) -> dict:
+    """Cold-path anchor binding manifest + relation + consent-window.
+
+    Nested manifest/relation are stripped of their own signature fields before the OUTER object
+    is canonicalized — the hash is tied to the same semantic bytes the relation verifier signs,
+    without inventing a second serializer.
     """
-    base = canonical_without(manifest, excluded=("signatures", "sig"))
-    digest = hashlib.sha256(base).digest()
-    return hashlib.sha256(digest + ("%s|%s" % (lane, epoch)).encode("utf-8")).hexdigest()[:32]
+    return {
+        "kind": "org.ainternet.caint.parent-anchor.v1",
+        "caint": manifest.get("caint"),
+        "controller": manifest.get("controller"),
+        "members": sorted(manifest.get("members", [])),
+        "manifest": _without_keys(manifest, {"sig"}),
+        "relation": _without_keys(relation, {"signatures"}),
+        "consent_window": consent_window,
+    }
+
+
+def caint_parent_hash(manifest: dict, relation: dict, consent_window: dict) -> str:
+    """`sha256:` over canonical(parent-anchor). The cold-path content-address of a composite."""
+    anchor = caint_parent_anchor(manifest, relation, consent_window)
+    return "sha256:" + hashlib.sha256(canonical_without(anchor, excluded=())).hexdigest()
+
+
+def caint_manifest_handle(manifest: dict, relation: dict, consent_window: dict,
+                          *, epoch=None, lane=None) -> str:
+    """Hot-path parent handle. Without epoch/lane = first16(parent_hash); with them = a keyed
+    short handle over parent_hash + runtime context. The handle says "expected"; the runtime
+    table decides "known" — an unknown/stale handle routes to dark/triage.
+    """
+    parent_hash = caint_parent_hash(manifest, relation, consent_window)
+    if epoch is None and lane is None:
+        return parent_hash.split(":", 1)[1][:32]
+    material = "|".join([parent_hash, str(epoch or ""), lane or ""]).encode("utf-8")
+    return hashlib.sha256(material).hexdigest()[:32]
 
 
 def verify_caint(manifest: dict, pubkeys: dict, now: float | None = None) -> VerifyDecision:
