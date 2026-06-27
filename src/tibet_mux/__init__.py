@@ -44,12 +44,21 @@ Part of the AInternet — The AI Network with .aint domains.
 Born April 2026.
 """
 
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 __all__ = [
     "Mux", "Channel", "Frame", "BandwidthGuard",
     "ChannelError", "ChannelThrottled",
     "Intent", "BandwidthPolicy", "INTENT_ROUTES", "BANDWIDTH_POLICIES",
+    # v1.1.0 — the one verifier family (#109 contract)
+    "VerifyDecision", "canonical_without", "sign_canonical", "verify_canonical",
+    "verify_bytes", "verify_actor_challenge", "verify_ipoll_headers",
+    "verify_mux_frame", "verify_relation", "verify_arena_probe", "vector_check",
 ]
 
 from tibet_mux.core import Mux, Channel, Frame, BandwidthGuard, ChannelError, ChannelThrottled
 from tibet_mux.intents import Intent, BandwidthPolicy, INTENT_ROUTES, BANDWIDTH_POLICIES
+from tibet_mux.verify import (
+    VerifyDecision, canonical_without, sign_canonical, verify_canonical, verify_bytes,
+    verify_actor_challenge, verify_ipoll_headers, verify_mux_frame, verify_relation,
+    verify_arena_probe, vector_check,
+)

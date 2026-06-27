@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tibet-mux"
-version = "1.0.1"
+version = "1.1.0"
 description = "Single-port channel multiplexer with intent-based routing and TBZ signing — part of the TIBET ecosystem"
 readme = "README.md"
 license = {text = "MIT"}
@@ -35,7 +35,10 @@ classifiers = [
     "Topic :: System :: Networking",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-dependencies = []
+dependencies = [
+    "tibet-core>=0.5.0b2",
+    "jis-core>=0.4.0b1",
+]
 
 [project.optional-dependencies]
 server = ["fastapi>=0.100.0", "uvicorn>=0.23.0", "websockets>=11.0"]
