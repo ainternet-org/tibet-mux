@@ -44,7 +44,7 @@ Part of the AInternet — The AI Network with .aint domains.
 Born April 2026.
 """
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 __all__ = [
     "Mux", "Channel", "Frame", "BandwidthGuard",
     "ChannelError", "ChannelThrottled",
@@ -53,6 +53,8 @@ __all__ = [
     "VerifyDecision", "canonical_without", "sign_canonical", "verify_canonical",
     "verify_bytes", "verify_actor_challenge", "verify_ipoll_headers",
     "verify_mux_frame", "verify_relation", "verify_arena_probe", "vector_check",
+    # v1.1.1 — .caint (composite actor) + forward-consent fast-path
+    "caint_capability", "caint_manifest_handle", "verify_caint", "verify_forward_consent",
 ]
 
 from tibet_mux.core import Mux, Channel, Frame, BandwidthGuard, ChannelError, ChannelThrottled
@@ -61,4 +63,5 @@ from tibet_mux.verify import (
     VerifyDecision, canonical_without, sign_canonical, verify_canonical, verify_bytes,
     verify_actor_challenge, verify_ipoll_headers, verify_mux_frame, verify_relation,
     verify_arena_probe, vector_check,
+    caint_capability, caint_manifest_handle, verify_caint, verify_forward_consent,
 )

@@ -17,6 +17,7 @@ Design & authorship: Codex (contract) + Root AI (lift). Part of the TIBET ecosys
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import time
 from dataclasses import dataclass
@@ -189,6 +190,100 @@ def verify_arena_probe(frame: dict[str, Any], public_key: str, now: float | None
 
 def _normalize_aint(value: str) -> str:
     return value if value.endswith(".aint") else value + ".aint"
+
+
+# ----------------------------------------------------------------------------
+# v1.1.1 — .caint (composite/derived actor) + forward-consent fast-path
+# ----------------------------------------------------------------------------
+# A .caint is DERIVED, never expansive: its capability is the set-INTERSECTION of
+# its member .waints, and it materializes only if every member signed the manifest
+# (N-of-N). No key inheritance, no authority expansion. This is verify_relation +
+# capability-intersection — not new crypto, the same canonical_without seam.
+
+def caint_capability(member_caps: list) -> list:
+    """Composite capability = set-INTERSECTION of member caps (never a superset)."""
+    if not member_caps:
+        return []
+    inter = set(member_caps[0])
+    for caps in member_caps[1:]:
+        inter &= set(caps)
+    return sorted(inter)
+
+
+def caint_manifest_handle(manifest: dict, lane: str = "", epoch: int = 0) -> str:
+    """Cold-path derive of the parent/composite handle (hot path references it).
+
+    parent_relation_hash = sha256(canonical_without(manifest)) folded with lane+epoch ->
+    a 16-byte (32 hex) keyed handle. Uses the SAME canonical_without as verify_caint, so the
+    handle is byte-consistent with what was verified (single source). The hot path presents only
+    this handle ("you are expected"); the runtime caches known handles and re-derives per epoch.
+    """
+    base = canonical_without(manifest, excluded=("signatures", "sig"))
+    digest = hashlib.sha256(base).digest()
+    return hashlib.sha256(digest + ("%s|%s" % (lane, epoch)).encode("utf-8")).hexdigest()[:32]
+
+
+def verify_caint(manifest: dict, pubkeys: dict, now: float | None = None) -> VerifyDecision:
+    """Composite-actor gate. Materializes iff:
+      1. every member signed the manifest (N-of-N), within issue/expiry window
+      2. declared capability ⊆ set-intersection of member caps (no expansion)
+    manifest = {kind: org.ainternet.caint.v1, caint, members:{aint:{pub,caps}}, capabilities:[...],
+                issued_at, expires_at, signatures:{aint:sig}}. Else -> not ok (caller darks/triages).
+    """
+    if manifest.get("kind") != "org.ainternet.caint.v1":
+        return VerifyDecision(False, "wrong-caint-kind", actor=manifest.get("caint"))
+    now = time.time() if now is None else now
+    if int(manifest.get("issued_at", manifest.get("ts", 0))) > now + 30:
+        return VerifyDecision(False, "issued-in-future", actor=manifest.get("caint"))
+    if int(manifest.get("expires_at", now - 1)) < now:
+        return VerifyDecision(False, "caint-expired", actor=manifest.get("caint"))
+    members = manifest.get("members", {})
+    signatures = manifest.get("signatures", {})
+    if not isinstance(members, dict) or not members or not isinstance(signatures, dict):
+        return VerifyDecision(False, "missing-members", actor=manifest.get("caint"))
+    member_caps = []
+    for aint, info in members.items():
+        pub = pubkeys.get(aint, (info or {}).get("pub"))
+        if not pub:
+            return VerifyDecision(False, "unknown-member", actor=aint)
+        if not verify_canonical(manifest, pub, signatures.get(aint), excluded=("signatures",)):
+            return VerifyDecision(False, "bad-member-signature", actor=aint)
+        member_caps.append((info or {}).get("caps", []))
+    allowed = set(caint_capability(member_caps))
+    declared = set(manifest.get("capabilities", []))
+    if not declared <= allowed:
+        return VerifyDecision(False, "capability-expansion", actor=manifest.get("caint"))
+    return VerifyDecision(True, "verified-caint", actor=manifest.get("caint"),
+                          signed=True, verified_actor=manifest.get("caint"))
+
+
+def verify_forward_consent(edge: dict, presenter_pubkey: str, presenter_challenge: str,
+                           presenter_signature: str, predecessor_pubkey: str,
+                           now: float | None = None) -> VerifyDecision:
+    """Expected-successor fast-path: consent pre-positioned by a verified predecessor.
+
+    The predecessor SIGNED a forward-edge naming the successor (next_aint + next_pubkey + lane +
+    epoch + expires_at). The presenter must BE that successor: same pubkey (anti-MITM, the slot is
+    bound to a key an interposer lacks) AND a fresh signature (it's really you, now). The handle
+    says "expected"; the signature says "it's you" — never skip the second.
+    edge = {kind: org.ainternet.forward-consent.v1, next_aint, next_pubkey, lane, epoch,
+            expires_at, nonce, sig}.
+    """
+    if edge.get("kind") != "org.ainternet.forward-consent.v1":
+        return VerifyDecision(False, "wrong-edge-kind")
+    now = time.time() if now is None else now
+    if int(edge.get("expires_at", now - 1)) < now:
+        return VerifyDecision(False, "forward-edge-expired", actor=edge.get("next_aint"))
+    if not verify_canonical(edge, predecessor_pubkey, excluded=("sig",)):
+        return VerifyDecision(False, "bad-predecessor-signature", actor=edge.get("next_aint"))
+    if edge.get("next_pubkey") != presenter_pubkey:
+        return VerifyDecision(False, "successor-pubkey-mismatch", actor=edge.get("next_aint"))
+    succ = verify_actor_challenge(edge.get("next_aint", ""), presenter_challenge,
+                                  presenter_signature, presenter_pubkey, now=now)
+    if not succ.ok:
+        return VerifyDecision(False, "successor-%s" % succ.reason, actor=edge.get("next_aint"))
+    return VerifyDecision(True, "verified-forward-consent", actor=edge.get("next_aint"),
+                          signed=True, verified_actor=edge.get("next_aint"))
 
 
 def vector_check(path: str) -> dict[str, Any]:
