@@ -44,7 +44,7 @@ Part of the AInternet — The AI Network with .aint domains.
 Born April 2026.
 """
 
-__version__ = "1.1.2"
+__version__ = "1.3.1"
 __all__ = [
     "Mux", "Channel", "Frame", "BandwidthGuard",
     "ChannelError", "ChannelThrottled",
@@ -57,6 +57,15 @@ __all__ = [
     # v1.1.2 — parent-anchor/hash aligned byte-exact to the caint-gate conformance pack
     "caint_capability", "caint_manifest_handle", "caint_parent_anchor", "caint_parent_hash",
     "verify_caint", "verify_forward_consent",
+    # v1.2.x — route posture (#RCTAM), carrier policy, re-attestation, machine posture
+    "route_posture", "carrier_policy", "reattestation", "cpu_capability",
+    "machine_posture", "negotiation", "workload_split",
+    # v1.3.0 — posture algebra (the meet) + bifurcated airlock (reproducibility gate)
+    "posture_algebra", "bifurcated_airlock",
+    "compose", "explain_fold", "verify_tree", "Pipeline", "run_smoke",
+    "Cell", "run_bifurcated", "BifurcationVerdict", "lane_provable",
+    # v1.3.1 — conformance runner (docs explain; vectors decide)
+    "conformance", "run_posture_algebra_conformance",
 ]
 
 from tibet_mux.core import Mux, Channel, Frame, BandwidthGuard, ChannelError, ChannelThrottled
@@ -67,3 +76,11 @@ from tibet_mux.verify import (
     verify_arena_probe, vector_check,
     caint_capability, caint_manifest_handle, verify_caint, verify_forward_consent,
 )
+from tibet_mux import (
+    route_posture, carrier_policy, reattestation, cpu_capability,
+    machine_posture, negotiation, workload_split, posture_algebra, bifurcated_airlock,
+    conformance,
+)
+from tibet_mux.posture_algebra import compose, explain_fold, verify_tree, Pipeline, run_smoke
+from tibet_mux.bifurcated_airlock import Cell, run_bifurcated, BifurcationVerdict, lane_provable
+from tibet_mux.conformance import run_posture_algebra_conformance

@@ -1,0 +1,115 @@
+{
+  "kind": "org.ainternet.tibet_mux.posture_algebra.conformance.v1",
+  "date": "2026-06-28",
+  "doctrine": {
+    "route_posture": "#RCTAM",
+    "law": "compose is lattice meet: per-digit minimum",
+    "bottom": "#00000",
+    "bottom_semantics": "dark route; fail-closed; absorbing",
+    "top": "#99999",
+    "top_semantics": "algebraic top only; not a permission grant",
+    "motto": "Do not score the actor. Number the proven route.",
+    "hardware_boundary": "CPU/GPU capabilities such as FMA3 are attested evidence for machine_posture/can_carry; they do not change compose() and must not lift route digits."
+  },
+  "compose_vectors": [
+    {
+      "name": "canonical_meet_example",
+      "postures": ["#23856", "#12093", "#88347"],
+      "expected": "#12043"
+    },
+    {
+      "name": "jasper_dummy_shot_pipeline",
+      "postures": ["#87239", "#82382", "#23884"],
+      "expected": "#22232"
+    },
+    {
+      "name": "idempotent",
+      "postures": ["#24358", "#24358"],
+      "expected": "#24358"
+    },
+    {
+      "name": "bottom_absorbing_left",
+      "postures": ["#00000", "#88347"],
+      "expected": "#00000"
+    },
+    {
+      "name": "bottom_absorbing_middle",
+      "postures": ["#23856", "#00000", "#88347"],
+      "expected": "#00000"
+    },
+    {
+      "name": "top_identity",
+      "postures": ["#99999", "#24358"],
+      "expected": "#24358",
+      "note": "#99999 is algebraic top only; route policy must still prove every digit."
+    },
+    {
+      "name": "commutative_pair_a",
+      "postures": ["#57391", "#24684"],
+      "expected": "#24381"
+    },
+    {
+      "name": "commutative_pair_b",
+      "postures": ["#24684", "#57391"],
+      "expected": "#24381"
+    },
+    {
+      "name": "associative_flat",
+      "postures": ["#98765", "#54321", "#67890"],
+      "expected": "#54320"
+    },
+    {
+      "name": "secret_hop_dark_collapse",
+      "postures": ["#54359", "#00000", "#54359"],
+      "expected": "#00000"
+    }
+  ],
+  "verify_tree_vectors": [
+    {
+      "name": "declared_tree_matches",
+      "hops": ["#24358", "#34358", "#24359"],
+      "declared_expected": "#24358",
+      "observed": "#24358",
+      "ok": true
+    },
+    {
+      "name": "weaker_than_declared_timing_lane",
+      "hops": ["#24358", "#24258", "#24359"],
+      "declared_expected": "#24358",
+      "observed": "#24258",
+      "ok": false,
+      "must_mention": "T timing-lane: declared 3, observed 2 (weaker)"
+    },
+    {
+      "name": "stronger_than_declared_mux_digit_is_still_mismatch",
+      "hops": ["#23856", "#12093", "#88347"],
+      "declared_expected": "#12042",
+      "observed": "#12043",
+      "ok": false,
+      "must_mention": "M mux-posture: declared 2, observed 3 (STRONGER-than-declared)"
+    }
+  ],
+  "invalid_input_vectors": [
+    {"input": "", "error": "ValueError"},
+    {"input": "#1234", "error": "ValueError"},
+    {"input": "#123456", "error": "ValueError"},
+    {"input": "#12A34", "error": "ValueError"},
+    {"input": "route:#12345", "error": "ValueError"}
+  ],
+  "machine_posture_boundary_vectors": [
+    {
+      "name": "fma3_attested_but_does_not_lift_route",
+      "machine_evidence": {"fma3": true, "avx2": true, "avx512f": false},
+      "postures": ["#24078", "#23078"],
+      "compose_expected": "#23078",
+      "rule": "FMA3 may influence can_carry()/lane policy, but compose() remains per-digit min."
+    },
+    {
+      "name": "aes_ni_missing_blocks_sealed_route_outside_compose",
+      "machine_evidence": {"aes_ni": false},
+      "postures": ["#24348"],
+      "compose_expected": "#24348",
+      "rule": "Algebra may fold the route, but machine_posture.can_carry must deny sealed traffic if AES-NI evidence is missing."
+    }
+  ]
+}

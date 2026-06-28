@@ -1,6 +1,6 @@
 # tibet-mux
 
-**Single-port channel multiplexer with intent-based routing and TBZ signing.**
+**Single-port channel multiplexer with intent-based routing, route posture and TBZ signing.**
 
 One TLS connection. Infinite channels. Chat, voice, video, VPN, file sync — all through port 443.
 
@@ -19,6 +19,86 @@ Client ──TLS 1.3──> :443 ──intent──> ┌─ chat       (I-Poll)
 Traditional networking: one port per service. SIP on 5060, STUN on 3478, HTTPS on 443, WireGuard on 51820. Firewalls, NAT, corporate proxies — every device configured differently.
 
 tibet-mux: **one TLS connection, intent routes everything**. Port 443 is open everywhere. Every firewall, every network, every device.
+
+For AInternet, MUX also carries a stricter rule:
+
+```text
+Do not score the actor.
+Number the proven route.
+```
+
+An AI runtime is often temporary. A key binds, a consent relation opens, a route
+materializes over a specific machine lane, and the window closes again. That is
+not a stable "trust score". It is a route posture: `#RCTAM`.
+
+```text
+#54359
+│││││
+││││└─ MUX: verified partituur
+│││└── Audit: sign-ahead
+││└─── Lane: scheduler-free cadence
+│└──── Consent: active parent relation
+└───── Family: composite actor (.caint)
+```
+
+## Route Posture Algebra
+
+Route postures compose as a meet: per-digit minimum. A path is only as strong as
+the weakest proven hop.
+
+```python
+from tibet_mux import posture_algebra as pa
+
+pa.compose("#23856", "#12093", "#88347")
+# "#12043"
+```
+
+This is not addition and not scoring. If any hop is dark, the whole path is dark:
+
+```python
+pa.compose("#54359", "#00000", "#54359")
+# "#00000"
+```
+
+You can smoke-test a declared route by folding the observed hops:
+
+```python
+r = pa.verify_tree(["#24358", "#24258", "#24359"], expected="#24358")
+print(r.ok)       # False
+print(r.weakest)  # T timing-lane: declared 3, observed 2 (weaker)
+```
+
+## Bifurcated Airlock
+
+Some lanes claim reproducible compute, not just reachability. `tibet-mux` 1.3
+ships a small bifurcated airlock primitive: run two cells with the same attested
+compute semantics and pass only if the output bytes match.
+
+FMA3 is the useful edge case. Fused multiply-add uses one rounding; separate
+multiply plus add uses two. Both can be legitimate, but they are different
+planes. The airlock compares bytes, not "close enough".
+
+```python
+from tibet_mux import bifurcated_airlock as airlock
+from tibet_mux import cpu_capability
+
+receipt = cpu_capability.cpu_capability_receipt()
+cell_a = airlock.Cell("a", receipt)
+cell_b = airlock.Cell("b", receipt)
+
+verdict = airlock.run_bifurcated(
+    airlock.fused_accumulate,
+    ([(1e16, 1.0000000000000002), (-1e16, 1.0)],),
+    cell_a,
+    cell_b,
+)
+
+print(verdict.passed)
+print(verdict.reason)
+```
+
+The route number proves the route. Machine posture proves which routes this box
+may carry. Airlock proves the claimed compute lane byte-for-byte.
 
 ## Three Security Layers
 
@@ -208,6 +288,13 @@ tibet-mux works with:
 MIT — J. van de Meent & R. AI @ Humotica
 
 
+## Credits
+
+Designed by [Jasper van de Meent](https://github.com/jaspertvdm). Built by Jasper and [Root AI](https://humotica.com) as part of [HumoticaOS](https://humotica.com).
+
+---
+
+**Stack-positie:** Groep `agentic` · Bootstrap = OSAPI-handshake naar [`tibet`](https://pypi.org/project/tibet-core/) + [`jis`](https://pypi.org/project/jis-core/) (fail → snaft-rule + tibet-pol-rapport) · ← [`ainternet`](https://pypi.org/project/ainternet/) · See `STACK.md` · See `demo/golden-path/` for the spine end-to-end.
 ---
 
 ## Enterprise
